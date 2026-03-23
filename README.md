@@ -30,3 +30,31 @@ The system prompt enforces four things explicitly:
 ### Verifying Accuracy for Unknown Languages
 
 I don't speak most of these languages. To verify correctness for these languages I used two approaches: back-translation (feeding the corrected sentence back through the API asking for English translation) and cross-checking a sample of outputs against Google Translate. The results were consistent with expected corrections.
+
+## How to Run
+
+### With Docker
+```bash
+cp .env.example .env
+# Add your ANTHROPIC_API_KEY to .env
+docker compose up --build
+```
+
+### Locally
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload
+```
+
+### Run Tests
+```bash
+# Inside Docker (as the scorer does)
+docker compose exec feedback-api pytest -v
+
+# Locally
+pytest tests/test_feedback_unit.py tests/test_schema.py -v
+pytest tests/test_feedback_integration.py -v
+```
