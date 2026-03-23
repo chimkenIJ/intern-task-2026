@@ -1,7 +1,7 @@
 """FastAPI application -- language feedback endpoint."""
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from app.feedback import get_feedback
 from app.models import FeedbackRequest, FeedbackResponse
@@ -16,10 +16,13 @@ app = FastAPI(
 
 
 @app.get("/health")
-async def health():
+def health():
     return {"status": "ok"}
 
 
 @app.post("/feedback", response_model=FeedbackResponse)
-async def feedback(request: FeedbackRequest) -> FeedbackResponse:
-    return await get_feedback(request)
+def feedback(request: FeedbackRequest) -> FeedbackResponse:
+    try:
+        return get_feedback(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

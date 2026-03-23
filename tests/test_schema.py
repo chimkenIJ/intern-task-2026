@@ -48,6 +48,32 @@ class TestRequestSchema:
                 schema,
             )
 
+    def test_missing_target_language_fails(self):
+        schema = load_schema("request.schema.json")
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(
+                {"sentence": "Hola", "native_language": "English"}, schema
+            )
+
+    def test_missing_native_language_fails(self):
+        schema = load_schema("request.schema.json")
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(
+                {"sentence": "Hola", "target_language": "Spanish"}, schema
+            )
+
+    def test_non_latin_script_valid(self):
+        """Japanese sentence must be accepted as a valid request."""
+        schema = load_schema("request.schema.json")
+        jsonschema.validate(
+            {
+                "sentence": "私は東京に住んでいます。",
+                "target_language": "Japanese",
+                "native_language": "English",
+            },
+            schema,
+        )
+
 
 class TestResponseSchema:
     def test_correct_response(self):
@@ -103,6 +129,81 @@ class TestResponseSchema:
                             "correction": "y",
                             "error_type": "not_a_real_type",
                             "explanation": "test",
+                        }
+                    ],
+                    "difficulty": "A1",
+                },
+                schema,
+            )
+
+    def test_missing_required_field_fails(self):
+        """Response missing 'difficulty' must fail validation."""
+        schema = load_schema("response.schema.json")
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(
+                {
+                    "corrected_sentence": "test",
+                    "is_correct": True,
+                    "errors": [],
+                    # difficulty omitted
+                },
+                schema,
+            )
+
+    def test_all_valid_difficulties_accepted(self):
+        """Every CEFR level must be accepted by the schema."""
+        schema = load_schema("response.schema.json")
+        for level in ("A1", "A2", "B1", "B2", "C1", "C2"):
+            jsonschema.validate(
+                {
+                    "corrected_sentence": "test",
+                    "is_correct": True,
+                    "errors": [],
+                    "difficulty": level,
+                },
+                schema,
+            )
+
+    def test_all_valid_error_types_accepted(self):
+        """Every allowed error_type must pass schema validation."""
+        schema = load_schema("response.schema.json")
+        valid_types = [
+            "grammar", "spelling", "word_choice", "punctuation", "word_order",
+            "missing_word", "extra_word", "conjugation", "gender_agreement",
+            "number_agreement", "tone_register", "other",
+        ]
+        for error_type in valid_types:
+            jsonschema.validate(
+                {
+                    "corrected_sentence": "test",
+                    "is_correct": False,
+                    "errors": [
+                        {
+                            "original": "x",
+                            "correction": "y",
+                            "error_type": error_type,
+                            "explanation": "test",
+                        }
+                    ],
+                    "difficulty": "A1",
+                },
+                schema,
+            )
+
+    def test_error_missing_explanation_fails(self):
+        """An error object without 'explanation' must fail schema validation."""
+        schema = load_schema("response.schema.json")
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(
+                {
+                    "corrected_sentence": "test",
+                    "is_correct": False,
+                    "errors": [
+                        {
+                            "original": "x",
+                            "correction": "y",
+                            "error_type": "grammar",
+                            # explanation omitted
                         }
                     ],
                     "difficulty": "A1",
